@@ -1,17 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace Knights_Tour
 {
@@ -38,6 +33,11 @@ namespace Knights_Tour
 
         public async void StartKnightsTour(int width, int height, int startx, int starty)
         {
+            if (width < startx || height < starty)
+            {
+                MessageBoxResult r = MessageBox.Show("Please use a valid start position","", MessageBoxButton.OK);
+                return;
+            }
             
             int fields = width * height;
 
@@ -45,7 +45,7 @@ namespace Knights_Tour
             
 
             
-            int triedmoves = 0;
+            long triedmoves = 0;
 
             var board = new int[width, height];
 
@@ -56,15 +56,32 @@ namespace Knights_Tour
             {
                 while (step != fields)
                 {
+                   
+                        Dispatcher.Invoke(new Action(() => DrawGrid(board, false)));
+                    try
+                    {
+                        board = Move(board, -1);
+                        triedmoves++;
 
-                    Dispatcher.Invoke(new Action(() => DrawGrid(board, false)));
+                        Dispatcher.Invoke(new Action(() => labelMoves.Content = "Moves: " + triedmoves));
+                        
+                    }
+                    catch (NotSolvableException)
+                    {
+                        MessageBoxResult r = MessageBox.Show("There is no solution possible.", "Sorry!", MessageBoxButton.OK);
+                        return;
+                    }
+                    catch (Exception)
+                    {
 
-                    board = Move(board, -1);
+                        throw;
+                    }
+
                 }
             });
 
             Dispatcher.Invoke(new Action(() => DrawGrid(board, true)));
-            Console.WriteLine("Done?");
+            Console.WriteLine("Done");
 
         }
 
@@ -202,8 +219,8 @@ namespace Knights_Tour
                     return move;
                 }
             }
-
-            throw new Exception("No solution");
+            
+            throw new NotSolvableException();
 
         }
 
@@ -266,7 +283,15 @@ namespace Knights_Tour
                 
             }
         }
+
+        private void NumberValidationTextBox(object sender, TextCompositionEventArgs e)
+        {
+            Regex regex = new Regex("[^0-9]+");
+            e.Handled = regex.IsMatch(e.Text);
+        }
     }
+
+
 
     public class Position
     {
@@ -291,6 +316,23 @@ namespace Knights_Tour
             this.id = id;
             this.movex = movex;
             this.movey = movey;
+        }
+    }
+
+    public class NotSolvableException : Exception
+    {
+        public NotSolvableException()
+        {
+        }
+
+        public NotSolvableException(string message)
+            : base(message)
+        {
+        }
+
+        public NotSolvableException(string message, Exception inner)
+            : base(message, inner)
+        {
         }
     }
 }
